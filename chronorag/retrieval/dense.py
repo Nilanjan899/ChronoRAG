@@ -52,6 +52,12 @@ class LocalDenseEmbedder:
             return [e.tolist() for e in embs]
         return [self._deterministic_fallback_embed(t) for t in texts]
 
+    def embed_query(self, text: str) -> List[float]:
+        return self.embed_text(text)
+
+    def embed_texts(self, texts: List[str]) -> List[List[float]]:
+        return self.embed_batch(texts)
+
     def _deterministic_fallback_embed(self, text: str) -> List[float]:
         """
         Deterministic, seedable projection into R^dim for offline operation
@@ -87,3 +93,7 @@ def get_embedder() -> LocalDenseEmbedder:
     if _embedder_instance is None:
         _embedder_instance = LocalDenseEmbedder()
     return _embedder_instance
+
+
+DenseRetriever = LocalDenseEmbedder
+

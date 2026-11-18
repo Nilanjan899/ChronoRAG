@@ -52,10 +52,33 @@ class ChronoRetrievalEngine:
         self.reranker = TemporalReranker()
         self.graph_store = TemporalGraphStore()
 
-    def retrieve(self, query_str: str) -> RetrievedEvidence:
+    def retrieve(
+        self,
+        query_str: str,
+        as_of_valid_time: Optional[Any] = None,
+        as_of_transaction_time: Optional[Any] = None,
+    ) -> RetrievedEvidence:
         """Executes full bitemporal retrieval pipeline."""
         # 1. Parse natural language query
         parsed_q = self.query_parser.parse(query_str)
+        if as_of_valid_time is not None:
+            if isinstance(as_of_valid_time, str):
+                from chronorag.extraction.date_parser import DateParser
+                p = DateParser.parse(as_of_valid_time)
+                if p:
+                    parsed_q.as_of_valid_time = p.dt
+            else:
+                parsed_q.as_of_valid_time = as_of_valid_time
+
+        if as_of_transaction_time is not None:
+            if isinstance(as_of_transaction_time, str):
+                from chronorag.extraction.date_parser import DateParser
+                p = DateParser.parse(as_of_transaction_time)
+                if p:
+                    parsed_q.as_of_transaction_time = p.dt
+            else:
+                parsed_q.as_of_transaction_time = as_of_transaction_time
+
         logger.info(f"Parsed Query Type: {parsed_q.query_type}, ValidTime: {parsed_q.as_of_valid_time}, TxTime: {parsed_q.as_of_transaction_time}")
 
         # 2. Sparse / Keyword retrieval
@@ -197,3 +220,8 @@ class ChronoRetrievalEngine:
             if len(deduped) >= top_k:
                 break
         return deduped
+
+
+HybridRetrievalEngine = ChronoRetrievalEngine
+EvidenceBundle = RetrievedEvidence
+

@@ -20,3 +20,10 @@ def reciprocal_rank_fusion(
 
     sorted_results = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
     return sorted_results
+
+
+class ReciprocalRankFusion:
+    @staticmethod
+    def fuse(ranked_lists: List[List[Tuple[str, float]]], k: int = 60) -> List[Tuple[str, float]]:
+        return reciprocal_rank_fusion(ranked_lists, k)
+

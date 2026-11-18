@@ -58,3 +58,17 @@ def parse_temporal_boundary(date_str: Optional[str]) -> Tuple[Optional[datetime]
 
     # Could not parse: explicitly unknown rather than invented!
     return None, True
+
+
+class ParsedDateResult:
+    def __init__(self, dt: Optional[datetime], is_unknown: bool):
+        self.dt = dt
+        self.is_unknown = is_unknown
+
+
+class DateParser:
+    @staticmethod
+    def parse(date_str: Optional[str]) -> Optional[ParsedDateResult]:
+        dt, is_unknown = parse_temporal_boundary(date_str)
+        return ParsedDateResult(dt, is_unknown)
+
