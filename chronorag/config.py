@@ -8,6 +8,10 @@ DATA_DIR = BASE_DIR / "data"
 MODELS_DIR = BASE_DIR / "models"
 STORAGE_DIR = BASE_DIR / "storage"
 
+# Point HuggingFace cache inside workspace for sandbox accessibility
+os.environ["HF_HOME"] = str(MODELS_DIR / "huggingface")
+os.environ["TRANSFORMERS_CACHE"] = str(MODELS_DIR / "huggingface" / "hub")
+
 # Create standard directories
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
@@ -31,7 +35,11 @@ class Settings(BaseModel):
     database_type: str = "auto"  # "postgres", "sqlite", or "auto"
 
     # Embedding model
-    embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_model_name: str = Field(
+        default_factory=lambda: str(MODELS_DIR / "all-MiniLM-L6-v2")
+        if (MODELS_DIR / "all-MiniLM-L6-v2").exists()
+        else "sentence-transformers/all-MiniLM-L6-v2"
+    )
     embedding_dim: int = 384
     device: str = "cpu"
 
