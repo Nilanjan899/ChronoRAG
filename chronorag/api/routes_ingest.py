@@ -117,7 +117,7 @@ def list_documents():
     """Lists all ingested documents and their version metadata."""
     summaries = []
     with get_db_session() as session:
-        docs = session.query(Document).order_by(Document.created_at.desc()).all()
+        docs = session.query(Document).order_by(Document.upload_timestamp.desc()).all()
         for doc in docs:
             versions = session.query(DocumentVersion).filter_by(document_id=doc.document_id).all()
             latest = max(versions, key=lambda v: v.version_number) if versions else None

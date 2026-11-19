@@ -20,19 +20,23 @@ def test_entity_resolution():
     name2 = f"{suffix}_Alpha_Safety_Policy_Document"
     name3 = f"{suffix}_Zeta_Network_Encryption"
 
-    # 1. Create first entity
-    ent1, is_new1, score1 = resolver.resolve_entity(name1, entity_type="Policy")
-    assert is_new1 is True
+    try:
+        # 1. Create first entity
+        ent1, is_new1, score1 = resolver.resolve_entity(name1, entity_type="Policy")
+        assert is_new1 is True
 
-    # 2. Similar alias should resolve to ent1
-    ent2, is_new2, score2 = resolver.resolve_entity(name2, entity_type="Policy")
-    assert is_new2 is False
-    assert ent2.entity_id == ent1.entity_id
+        # 2. Similar alias should resolve to ent1
+        ent2, is_new2, score2 = resolver.resolve_entity(name2, entity_type="Policy")
+        assert is_new2 is False
+        assert ent2.entity_id == ent1.entity_id
 
-    # 3. Completely different entity should NOT merge
-    ent3, is_new3, score3 = resolver.resolve_entity(name3, entity_type="Policy")
-    assert is_new3 is True
-    assert ent3.entity_id != ent1.entity_id
+        # 3. Completely different entity should NOT merge
+        ent3, is_new3, score3 = resolver.resolve_entity(name3, entity_type="Policy")
+        assert is_new3 is True
+        assert ent3.entity_id != ent1.entity_id
+    finally:
+        with get_db_session() as session:
+            session.query(Entity).filter(Entity.canonical_name.like(f"%{suffix}%")).delete()
 
 
 def test_relation_detector_supersedes_and_supports():

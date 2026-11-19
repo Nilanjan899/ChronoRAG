@@ -29,7 +29,7 @@ from chronorag.benchmark.baselines import (
     FullChronoRAG,
 )
 from chronorag.benchmark.ablations import AblatedChronoRAG, get_standard_ablations
-from chronorag.benchmark.runner import ChronoBenchRunner, BenchmarkReport
+from chronorag.benchmark.runner import ChronoBenchRunner
 from chronorag.retrieval.dense import DenseRetriever
 from chronorag.retrieval.keyword import KeywordRetriever
 
@@ -106,20 +106,19 @@ st.markdown(
 
 # Sidebar
 with st.sidebar:
-    st.image("https://img.icons8.com/fluency/96/clock--v1.png", width=64)
-    st.markdown("### **ChronoRAG Engine**")
+    st.markdown("## ⏱️ **ChronoRAG**")
     st.markdown(
-        "**Bitemporal Knowledge Retrieval & Evidence Reconstruction**\n\n"
-        "• Valid Time: Real-world truth\n"
-        "• Transaction Time: System knowledge\n"
-        "• Zero-cost & 100% local operation"
+        "**Bitemporal Knowledge Retrieval & Historical Reasoning Engine**\n\n"
+        "• **Valid Time**: Real-world validity\n"
+        "• **Transaction Time**: Knowledge recording\n"
+        "• 100% Free & Local-First"
     )
     st.divider()
 
     st.markdown("#### **System Diagnostics**")
     st.caption(f"**Database:** {settings.database_type.upper()}")
     st.caption(f"**Embedding Model:** {Path(settings.embedding_model_name).name}")
-    st.caption(f"**Inference:** 100% Local (CPU/GPU)")
+    st.caption("**Inference:** 100% Local (CPU/GPU)")
 
     with get_db_session() as s:
         doc_count = s.query(Document).count()
@@ -158,12 +157,36 @@ with tab_chat:
     st.markdown("### Temporal Querying with Bitemporal Filters")
     st.caption("Ask questions across valid time (what was true) and transaction time (what the system knew).")
 
+    # Initialize default query state
+    if "current_query" not in st.session_state:
+        st.session_state["current_query"] = "What was the employee annual leave entitlement on March 1, 2024?"
+
+    # Preset query chips
+    st.markdown("**Sample Temporal Queries:**")
+    preset_cols = st.columns(4)
+    if preset_cols[0].button("📅 March 1, 2024 (Before Amendment)"):
+        st.session_state["current_query"] = "What was the employee annual leave entitlement on March 1, 2024?"
+        st.session_state["execute_search"] = True
+        st.rerun()
+    if preset_cols[1].button("📅 Sept 1, 2024 (After Amendment)"):
+        st.session_state["current_query"] = "What was the employee annual leave entitlement on September 1, 2024?"
+        st.session_state["execute_search"] = True
+        st.rerun()
+    if preset_cols[2].button("🔄 Policy Evolution Timeline"):
+        st.session_state["current_query"] = "How did the employee annual leave policy change over time?"
+        st.session_state["execute_search"] = True
+        st.rerun()
+    if preset_cols[3].button("🕰️ System Knowledge on Jan 5, 2025"):
+        st.session_state["current_query"] = "What would the system have answered on January 5, 2025 regarding leave entitlement?"
+        st.session_state["execute_search"] = True
+        st.rerun()
+
     col_q, col_vt, col_tt = st.columns([3, 1.2, 1.2])
 
     with col_q:
         user_query = st.text_input(
             "Natural Language Query",
-            value="What was the annual leave entitlement for employees on March 1, 2024?",
+            value=st.session_state["current_query"],
             placeholder="e.g., What was the entitlement on September 1, 2024?",
         )
 
@@ -171,7 +194,7 @@ with tab_chat:
         vt_input = st.text_input(
             "As-of Valid Time (Optional)",
             value="",
-            placeholder="YYYY-MM-DD (e.g. 2024-03-01)",
+            placeholder="YYYY-MM-DD",
             help="Specify when the fact had to be valid in the real world. Leave blank to let query parser detect.",
         )
 
@@ -179,32 +202,15 @@ with tab_chat:
         tt_input = st.text_input(
             "As-of Transaction Time (Optional)",
             value="",
-            placeholder="YYYY-MM-DD (e.g. 2025-01-05)",
+            placeholder="YYYY-MM-DD",
             help="Specify what the system recorded at that point in time (retroactive knowledge).",
         )
 
     btn_search = st.button("🔍 Execute Bitemporal Retrieval & Reasoning", type="primary", use_container_width=True)
 
-    # Preset query chips
-    st.markdown("**Sample Temporal Queries:**")
-    preset_cols = st.columns(4)
-    if preset_cols[0].button("📅 March 1, 2024 (Before Amendment)"):
-        st.session_state["query_text"] = "What was the employee annual leave entitlement on March 1, 2024?"
-        st.rerun()
-    if preset_cols[1].button("📅 Sept 1, 2024 (After Amendment)"):
-        st.session_state["query_text"] = "What was the employee annual leave entitlement on September 1, 2024?"
-        st.rerun()
-    if preset_cols[2].button("🔄 Policy Evolution Timeline"):
-        st.session_state["query_text"] = "How did the employee annual leave policy change over time?"
-        st.rerun()
-    if preset_cols[3].button("🕰️ System Knowledge on Jan 5, 2025"):
-        st.session_state["query_text"] = "What would the system have answered on January 5, 2025 regarding leave entitlement?"
-        st.rerun()
+    should_execute = btn_search or st.session_state.pop("execute_search", False)
 
-    if "query_text" in st.session_state:
-        user_query = st.session_state["query_text"]
-
-    if btn_search or ("query_text" in st.session_state and not btn_search):
+    if should_execute:
         with st.spinner("Executing bitemporal retrieval, recursive CTE graph traversal, and synthesis..."):
             as_of_vt = vt_input.strip() if vt_input.strip() else None
             as_of_tt = tt_input.strip() if tt_input.strip() else None
@@ -215,6 +221,10 @@ with tab_chat:
                 as_of_transaction_time=as_of_tt,
             )
             ans = answer_engine.generate_answer(evidence)
+            st.session_state["latest_answer"] = ans
+
+    if "latest_answer" in st.session_state:
+        ans = st.session_state["latest_answer"]
 
         # 1. Natural Language Answer
         st.markdown("#### 1. Grounded Answer")
@@ -231,12 +241,16 @@ with tab_chat:
             timeline_items = []
             for ev in ans.timeline:
                 vt_range = f"{ev.get('valid_from', 'Start')} → {ev.get('valid_until', 'Present/Ongoing')}"
+                val = ev.get("value") or ev.get("object_value", "N/A")
+                subj = ev.get("subject", "General")
+                pred = ev.get("predicate", "Policy")
                 timeline_items.append(
                     {
-                        "Period": vt_range,
-                        "Entitlement / Value": ev.get("object_value", "N/A"),
+                        "Period (Valid Time)": vt_range,
+                        "Subject": subj,
+                        "Policy Predicate": pred,
+                        "Entitlement / Value": val,
                         "Status": ev.get("status", "Active"),
-                        "Source Document": ev.get("source_document", "Knowledge Base"),
                     }
                 )
             st.table(pd.DataFrame(timeline_items))
@@ -247,8 +261,12 @@ with tab_chat:
         st.markdown("#### 3. Supporting Claim Evidence & Citations")
         if ans.supporting_evidence:
             for idx, ev in enumerate(ans.supporting_evidence, start=1):
-                with st.expander(f"Citation [{idx}] — {ev.get('subject')}: {ev.get('value')} (Source: {ev.get('document')}, p. {ev.get('page')})"):
-                    st.markdown(f"**Exact Quote:** *\"{ev.get('exact_quote')}\"*")
+                quote = ev.get("exact_quote", "")
+                val = ev.get("value") or ev.get("object_value", "")
+                doc_name = ev.get("document", "Source Document")
+                page = ev.get("page", 1)
+                with st.expander(f"Citation [{idx}] — {ev.get('subject')}: {val} (Source: {doc_name}, p. {page})"):
+                    st.markdown(f"**Exact Quote:** *\"{quote}\"*")
                     col_e1, col_e2, col_e3 = st.columns(3)
                     col_e1.markdown(f"**Valid From:** `{ev.get('valid_from')}`")
                     col_e2.markdown(f"**Valid Until:** `{ev.get('valid_until')}`")
@@ -341,19 +359,26 @@ with tab_explorer:
     with subtab_docs:
         st.markdown("#### Ingested Documents & Immutable Versions")
         with get_db_session() as s:
-            docs = s.query(Document).order_by(Document.created_at.desc()).all()
+            docs = s.query(Document).order_by(Document.upload_timestamp.desc()).all()
             doc_rows = []
             for d in docs:
-                versions = s.query(DocumentVersion).filter_by(document_id=d.document_id).all()
+                versions = (
+                    s.query(DocumentVersion)
+                    .filter_by(document_id=d.document_id)
+                    .order_by(DocumentVersion.version_number.asc())
+                    .all()
+                )
                 for v in versions:
+                    upload_str = v.created_at.strftime("%Y-%m-%d %H:%M") if v.created_at else "N/A"
+                    pub_str = d.publication_timestamp.strftime("%Y-%m-%d") if d.publication_timestamp else "N/A"
                     doc_rows.append(
                         {
                             "Document ID": d.document_id[:8] + "...",
                             "Filename": d.filename,
                             "Version": f"v{v.version_number}",
                             "Content Hash (SHA-256)": v.content_hash[:16] + "...",
-                            "Publication Date": d.publication_timestamp.strftime("%Y-%m-%d") if d.publication_timestamp else "N/A",
-                            "Uploaded At": v.created_at.strftime("%Y-%m-%d %H:%M"),
+                            "Publication Date": pub_str,
+                            "Uploaded At": upload_str,
                         }
                     )
         if doc_rows:
@@ -370,7 +395,7 @@ with tab_explorer:
             for c in claims:
                 claim_rows.append(
                     {
-                        "ID": c.claim_id,
+                        "ID": c.claim_id[:8] + "..." if isinstance(c.claim_id, str) else str(c.claim_id),
                         "Subject": c.subject_text,
                         "Predicate": c.predicate,
                         "Object Value": c.object_value,
@@ -499,18 +524,21 @@ with tab_bench:
 
         with chart_col1:
             st.markdown("##### Historical Accuracy & Temporal Precision")
-            chart_df = pd.DataFrame([
-                {"System": s.system_name, "Historical Accuracy": s.historical_accuracy, "Temporal Precision@K": s.temporal_precision_at_k}
-                for s in sys_list
-            ])
+            rows = []
+            for s in sys_list:
+                rows.append({"System": s.system_name, "Metric": "Historical Accuracy", "Score": s.historical_accuracy})
+                rows.append({"System": s.system_name, "Metric": "Temporal Precision@K", "Score": s.temporal_precision_at_k})
+            chart_df = pd.DataFrame(rows)
             fig1 = px.bar(
                 chart_df,
                 x="System",
-                y=["Historical Accuracy", "Temporal Precision@K"],
+                y="Score",
+                color="Metric",
                 barmode="group",
                 color_discrete_sequence=["#1976D2", "#43A047"],
                 height=350,
             )
+            fig1.update_yaxes(range=[0, 1.05], tickformat=".0%")
             st.plotly_chart(fig1, use_container_width=True)
 
         with chart_col2:
@@ -527,6 +555,7 @@ with tab_bench:
                 color_discrete_sequence=["#E53935", "#FB8C00", "#FDD835", "#43A047"],
                 height=350,
             )
+            fig2.update_yaxes(range=[0, 1.05], tickformat=".0%")
             st.plotly_chart(fig2, use_container_width=True)
 
         # Ablation Studies
@@ -556,4 +585,5 @@ with tab_bench:
                 color_continuous_scale="Blues",
                 height=300,
             )
+            fig_abl.update_yaxes(range=[0, 1.05], tickformat=".0%")
             st.plotly_chart(fig_abl, use_container_width=True)

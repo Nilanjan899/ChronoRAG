@@ -12,7 +12,14 @@ class GraphVisualizer:
     def generate_pyvis_html(output_path: Optional[Path] = None) -> str:
         from pyvis.network import Network
 
-        net = Network(height="600px", width="100%", directed=True, bgcolor="#222222", font_color="white")
+        net = Network(
+            height="600px",
+            width="100%",
+            directed=True,
+            bgcolor="#1e1e1e",
+            font_color="white",
+            cdn_resources="in_line",
+        )
         net.force_atlas_2based()
 
         with get_db_session() as session:
