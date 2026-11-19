@@ -18,6 +18,9 @@ class ClaimExtractionPipeline:
     def __init__(self):
         self.engine = get_extraction_engine()
 
+    def extract_from_document_version(self, document_version_id: str, *args, **kwargs) -> List[Claim]:
+        return self.process_document_version(document_version_id)
+
     def process_document_version(self, version_id: str) -> List[Claim]:
         """Extracts and stores claims for all chunks in a document version."""
         persisted_claims: List[Claim] = []

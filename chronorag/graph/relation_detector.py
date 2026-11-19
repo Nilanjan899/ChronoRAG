@@ -151,3 +151,10 @@ class TemporalRelationDetector:
             )
 
         return None
+
+    def detect_and_store_relations(self) -> int:
+        return self.detect_all_relations()
+
+
+RelationDetector = TemporalRelationDetector
+

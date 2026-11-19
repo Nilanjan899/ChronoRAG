@@ -40,6 +40,16 @@ class ConflictDetector:
                 if not (same_subject and same_pred):
                     continue
 
+                # Disregard generic non-atomic clauses from conflict detection
+                GENERIC_NON_ATOMIC = {"policy statement", "statement", "clause", "document", "policy clause"}
+                if (
+                    c1.subject_text.lower() in GENERIC_NON_ATOMIC
+                    or c1.predicate.lower() in GENERIC_NON_ATOMIC
+                    or c2.subject_text.lower() in GENERIC_NON_ATOMIC
+                    or c2.predicate.lower() in GENERIC_NON_ATOMIC
+                ):
+                    continue
+
                 same_cond = c1.conditions == c2.conditions
                 same_val = c1.object_value.strip().lower() == c2.object_value.strip().lower()
 

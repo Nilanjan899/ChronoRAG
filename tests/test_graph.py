@@ -15,10 +15,10 @@ def setup_db():
 def test_entity_resolution():
     resolver = EntityResolver(similarity_threshold=0.80)
     import uuid
-    suffix = str(uuid.uuid4())[:6]
-    name1 = f"Test Leave Policy {suffix}"
-    name2 = f"Test Leave Policy Document {suffix}"
-    name3 = f"Corporate Travel Allowance Policy {suffix}"
+    suffix = uuid.uuid4().hex[:12]
+    name1 = f"{suffix}_Alpha_Safety_Policy"
+    name2 = f"{suffix}_Alpha_Safety_Policy_Document"
+    name3 = f"{suffix}_Zeta_Network_Encryption"
 
     # 1. Create first entity
     ent1, is_new1, score1 = resolver.resolve_entity(name1, entity_type="Policy")

@@ -63,9 +63,11 @@ def test_structure_aware_chunking(tmp_path):
 
 
 def test_ingestion_duplicate_and_versioning(tmp_path):
+    import uuid
+    u_id = uuid.uuid4().hex[:8]
     pipeline = IngestionPipeline()
-    file_path = tmp_path / "travel_policy.txt"
-    file_path.write_text("Travel budget is $500 per day for senior managers.", encoding="utf-8")
+    file_path = tmp_path / f"travel_policy_{u_id}.txt"
+    file_path.write_text(f"Travel budget is $500 per day for senior managers {u_id}.", encoding="utf-8")
 
     # 1. Initial Ingestion
     doc, ver, is_new = pipeline.ingest_file(file_path)
@@ -80,7 +82,7 @@ def test_ingestion_duplicate_and_versioning(tmp_path):
     assert ver_dup.version_id == ver.version_id
 
     # 3. New Version (same filename, modified content)
-    file_path.write_text("Effective June 2025, travel budget is $650 per day for senior managers.", encoding="utf-8")
+    file_path.write_text(f"Effective June 2025, travel budget is $650 per day for senior managers {u_id}.", encoding="utf-8")
     doc_v2, ver_v2, is_new_v2 = pipeline.ingest_file(file_path)
     assert is_new_v2 is True
     assert doc_v2.document_id == doc.document_id

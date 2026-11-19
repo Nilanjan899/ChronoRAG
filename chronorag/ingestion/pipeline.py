@@ -29,6 +29,7 @@ class IngestionPipeline:
         file_path: Path,
         publication_timestamp: Optional[datetime] = None,
         custom_metadata: Optional[Dict[str, Any]] = None,
+        publication_date: Optional[Any] = None,
     ) -> Tuple[Document, DocumentVersion, bool]:
         """
         Ingest a file.
@@ -36,6 +37,13 @@ class IngestionPipeline:
         If duplicate content exists, returns the existing document/version.
         If filename matches existing document but content is different, creates a new version.
         """
+        if publication_date is not None and publication_timestamp is None:
+            if isinstance(publication_date, str):
+                from chronorag.extraction.date_parser import DateParser
+                p = DateParser.parse(publication_date)
+                publication_timestamp = p.dt if p else None
+            elif isinstance(publication_date, datetime):
+                publication_timestamp = publication_date
         file_path = Path(file_path)
         content_hash = compute_sha256(file_path)
         filename = file_path.name

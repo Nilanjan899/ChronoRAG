@@ -95,8 +95,10 @@ class EntityResolver:
         words_b = set(norm_b.split())
         if words_a and words_b:
             jaccard = len(words_a & words_b) / len(words_a | words_b)
-            # If one is a complete subset of the other (e.g. 'annual leave' inside 'annual leave v2')
-            if words_a.issubset(words_b) or words_b.issubset(words_a):
+            # Only apply subset boost if the shorter is at least 65% of the longer
+            if (words_a.issubset(words_b) or words_b.issubset(words_a)) and (
+                min(len(words_a), len(words_b)) / max(len(words_a), len(words_b)) >= 0.65
+            ):
                 subset_sim = len(words_a & words_b) / min(len(words_a), len(words_b))
                 return max(seq_sim, jaccard, subset_sim * 0.9)
             return max(seq_sim, jaccard)
